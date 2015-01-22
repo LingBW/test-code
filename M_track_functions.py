@@ -268,7 +268,7 @@ class track(object):
         '''        
         pass                                 
         
-    def bbox2ij(self, lons, lats, bbox):
+    def bbox2ij(self, lon, lat, lons, lats, length=1):
         """
         Return tuple of indices of points that are completely covered by the 
         specific boundary box.
@@ -279,9 +279,10 @@ class track(object):
         Example
         -------  
         >>> i0,i1,j0,j1 = bbox2ij(lat_rho,lon_rho,[-71, -63., 39., 46])
-        >>> h_subset = nc.variables['h'][j0:j1,i0:i1]       
+        >>> h_subset = nc.variables['h'][j0:j1,i0:i1]
+        length: the boundary box.
         """
-        
+        bbox = [lon-length, lon+length, lat-length, lat+length]
         bbox = np.array(bbox)
         mypath = np.array([bbox[[0,1,1,0]],bbox[[2,2,3,3]]]).T
         p = path.Path(mypath)
@@ -298,19 +299,18 @@ class track(object):
         '''check if there are no points inside the given area'''        
         
         if not index[0].tolist():          # bbox covers no area
-            raise Exception('no points in this area')
+            raise Exception('This point is not in the model area')
             
         else:
             return index
             
-    def nearest_point_index(self, lon, lat, lons, lats, length=1):  #,num=4
+    def nearest_point_index(self, lon, lat, lons, lats):  #,num=4
         '''
         Return the index of the nearest rho point.
         lon, lat: the coordinate of start point, float
         lats, lons: the coordinate of points to be calculated.
-        length: the boundary box.
         '''
-        def ll_distance(lon,lat,lons,lats):
+        def min_distance(lon,lat,lons,lats):
             '''Find out the nearest distance to (lon,lat),and return lon.distance units: meters'''
             mapx = Basemap(projection='ortho',lat_0=lat,lon_0=lon,resolution='l')
             dis_set = []
@@ -322,11 +322,10 @@ class track(object):
             dis = min(dis_set)
             p = dis_set.index(dis)
             lnp = lons[p]
-            return lnp,dis
-        bbox = [lon-length, lon+length, lat-length, lat+length]
-        index = self.bbox2ij(lons, lats, bbox)
+            return lnp,dis       
+        index = self.bbox2ij(lon, lat, lons, lats)
         lon_covered = lons[index];  lat_covered = lats[index]       
-        lonp,distance = ll_distance(lon,lat,lon_covered,lat_covered)
+        lonp,distance = min_distance(lon,lat,lon_covered,lat_covered)
         index = np.where(lons==lonp)
         return index,distance
         
@@ -702,8 +701,8 @@ class get_fvcom(track):
         data: a dict that has 'u' and 'v'
         '''
         data = self.get_data(url)        
-        lonc, latc = data['lonc'][:], data['latc'][:]
-        lonv, latv = data['lon'][:], data['lat'][:]
+        lonc, latc = data['lonc'][:], data['latc'][:]  #quantity:165095
+        lonv, latv = data['lon'][:], data['lat'][:]    #Quantity:98432
         h = data['h'][:]
         siglay = data['siglay'][:]        
         if lon>90:
