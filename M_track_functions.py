@@ -268,7 +268,7 @@ class track(object):
         '''        
         pass                                 
         
-    def bbox2ij(self, lon, lat, lons, lats, length=1):
+    def bbox2ij(self, lon, lat, lons, lats, length=0.06):  #0.3/5==0.06
         """
         Return tuple of indices of points that are completely covered by the 
         specific boundary box.
@@ -439,37 +439,20 @@ class get_roms(track):
         return points
         '''
         data = self.get_data(url)
-        nodes = dict(lon=lon, lat=lat)
+        nodes = dict(lon=[lon], lat=[lat])
         #mask = data['mask_rho'][:]
         lons = data['lon_rho'][:]
         lats = data['lat_rho'][:]
         #lons, lats = lon_rho[:-1, :-1], lat_rho[:-1, :-1]
         index, nearestdistance = self.nearest_point_index(lon,lat,lons,lats)
-        print 'index',index,index[0][0],index[1][0]
+        #print 'index',index,index[0][0],index[1][0]
         depth_layers = data['h'][index]*data['s_rho']  #[0]][index[1][0]]
         layer = np.argmin(abs(depth_layers+depth))
         #print layer  #layer = 35
-        #u = data['u'][:,layer]
-        #v = data['v'][:,layer]
         
         for i in range(abs(self.hours)):
-            #u_t = u[i][:-1, :]
-            #v_t = v[i][:, :-1]
-            '''
-            u_p = u1[index[1][0]]
-            v_p = v1[index[1][0]]'''
-            u1 = data['u'][i][layer][index[0][0]]
-            v1 = data['v'][i][layer][index[0][0]]
-            print len(u1),len(v1)
-            u_t = u1[index[1][0]]
-            v_t = v1[index[1][0]]
-            print u_t,v_t
-            #u_t = u2[0]
-            #v_t = v2[0]
-            '''if not u_p or not v_p:
-                print 'point hit the land'
-                break'''
-            
+            u_t = data['u'][i][layer][index[0][0]][index[1][0]]
+            v_t = data['v'][i][layer][index[0][0]][index[1][0]]
             dx = 60*60*u_t#float(u_p)
             dy = 60*60*v_t#float(v_p)
             mapx = Basemap(projection='ortho',lat_0=lat,lon_0=lon,resolution='l')                        
@@ -478,13 +461,8 @@ class get_roms(track):
             print 'lon,lat,i',lon,lat,i
             #lon = lon + dx/(111111*np.cos(lat*np.pi/180))
             #lat = lat + dy/111111
-            try:
-                index, nearestdistance = self.nearest_point_index(lon,lat,lons,lats)
-            except(Exception):
-                print 'Point hits land or model boundary'
-                break
             nodes['lon'].append(lon);  nodes['lat'].append(lat)
-            #nodes['lon'] = np.append(nodes['lon'],lon); nodes['lat'] = np.append(nodes['lat'],lat)
+            index, nearestdistance = self.nearest_point_index(lon,lat,lons,lats)
         return nodes
         
 class get_fvcom(track):
