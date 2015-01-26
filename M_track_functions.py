@@ -450,9 +450,9 @@ class get_roms(track):
         layer = np.argmin(abs(depth_layers+depth))
         #print layer  #layer = 35
         
-        for i in range(abs(self.hours)):
-            u_t = data['u'][i][layer][index[0][0]][index[1][0]]
-            v_t = data['v'][i][layer][index[0][0]][index[1][0]]
+        for i in range(abs(self.hours)/2):  #Roms points update every 2 hour
+            u_t = data['u'][2*i][layer][index[0][0]][index[1][0]]
+            v_t = data['v'][2*i][layer][index[0][0]][index[1][0]]
             dx = 60*60*u_t#float(u_p)
             dy = 60*60*v_t#float(v_p)
             mapx = Basemap(projection='ortho',lat_0=lat,lon_0=lon,resolution='l')                        
