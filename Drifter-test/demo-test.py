@@ -57,29 +57,54 @@ points['lons'].extend(fc_set['lons'])
 fig = plt.figure()
 ax = fig.add_subplot(111)
 draw_basemap(fig, ax, points)
-ax.plot(dr_set['lons'][0],dr_set['lats'][0],'c.',markersize=16) #,label='Startpoint'
+'''ax.plot(dr_set['lons'][0],dr_set['lats'][0],'c.',markersize=16) #,label='Startpoint'
 ax.annotate('24/1', xy=(dr_set['lons'][0]+0.005,dr_set['lats'][0]+0.005),fontsize=6,
             xytext=(dr_set['lons'][0]+0.03,dr_set['lats'][0]+0.03),
-            arrowprops=dict(arrowstyle="wedge")) #facecolor=colors[i]
+            arrowprops=dict(arrowstyle="wedge")) #facecolor=colors[i]'''
 #colors=uniquecolors(len(points['lats'])) #config colors
 plt.title('Drifter {0}: {1} track'.format(drifter_ID,MODE))
 ########################
+a0 = 12; a1 = 23; a2 = 34
 def animate(n):
     #ax.cla()
     #del ax.lines() #apply to plot
     #del ax.collection() #apply to scatter  
-    del ax.lines[:]
-    '''del ax.lines[:]
-    if n<5:
-        ax.plot(fc_set['lons'][n],fc_set['lats'][n],color='r',linestyle='-',linewidth=4,
-                marker='o',markerfacecolor='r',markersize=6) #'%d'%n   
-        ax.plot(dr_set['lons'][n],dr_set['lats'][n],color='g',linestyle='-',linewidth=4,
-                marker='o',markerfacecolor='b',markersize=6,label='drifter')
-    if n>=5:
-        ax.plot(fc_set['lons'][n-5:n],fc_set['lats'][n-5:n],color='r',linestyle='-',linewidth=4,
-                marker='o',markerfacecolor='r',markersize=6) #'%d'%n   
-        ax.plot(dr_set['lons'][n-5:n],dr_set['lats'][n-5:n],color='g',linestyle='-',linewidth=4,
-                marker='o',markerfacecolor='b',markersize=6,label='drifter')'''
+
+    #d_lon = dr_set['lons'][:n]; d_lat = dr_set['lats'][:n]
+    #f_lon = fc_set['lons'][:n]; f_lat = fc_set['lats'][:n]
+    if n<a0:
+        if n==0:
+            po = (dr_set['lons'][n]+0.005,dr_set['lats'][n]+0.005)
+            pt = (dr_set['lons'][n]+0.03,dr_set['lats'][n]+0.03)
+            ax.annotate('24/1',xy=po,xytext=pt,fontsize=6,arrowprops=dict(arrowstyle="wedge"))
+            pass
+        ax.plot(dr_set['lons'][n-1:n+1],dr_set['lats'][n-1:n+1],'bo-',markersize=6,label='Drifter')#10-n%5
+        ax.plot(fc_set['lons'][:n],fc_set['lats'][:n],'go-',markersize=4,label='%s'%MODE)
+    if n>=a0 and n<a1:
+        if n==a0:
+            po = (dr_set['lons'][n]+0.005,dr_set['lats'][n]+0.005)
+            pt = (dr_set['lons'][n]+0.03,dr_set['lats'][n]+0.03)
+            ax.annotate('25/1',xy=po,xytext=pt,fontsize=6,arrowprops=dict(arrowstyle="wedge"))
+        ax.plot(dr_set['lons'][n-1:n+1],dr_set['lats'][n-1:n+1],'bo-',markersize=6,label='Drifter')
+        ax.plot(fc_set['lons'][a0:n],fc_set['lats'][a0:n],'yo-',markersize=4,label='%s'%MODE)
+    if n>=a1 and n<a2:
+        if n==a1:
+            po = (dr_set['lons'][n]+0.005,dr_set['lats'][n]+0.005)
+            pt = (dr_set['lons'][n]+0.03,dr_set['lats'][n]+0.03)
+            ax.annotate('26/1',xy=po,xytext=pt,fontsize=6,arrowprops=dict(arrowstyle="wedge"))
+        if n==(a2-1):
+            ax.plot(dr_set['lons'][n-1:-1],dr_set['lats'][n-1:-1],'bo-',markersize=6,label='Drifter')
+            pass
+        ax.plot(dr_set['lons'][n-1:n+1],dr_set['lats'][n-1:n+1],'bo-',markersize=6,label='Drifter')
+        ax.plot(fc_set['lons'][a1:n],fc_set['lats'][a1:n],'co-',markersize=4,label='%s'%MODE)
+        
+    if n>=a2:
+        if n==a2:
+            po = (fc_set['lons'][n]+0.005,fc_set['lats'][n]+0.005)
+            pt = (fc_set['lons'][n]+0.03,fc_set['lats'][n]+0.03)
+            ax.annotate('26/1',xy=po,xytext=pt,fontsize=6,arrowprops=dict(arrowstyle="wedge"))
+        ax.plot(fc_set['lons'][a2:n],fc_set['lats'][a2:n],'ro-',markersize=4,label='%s'%MODE)
+    ''''del ax.lines[:]
     if n<5:
         ax.plot(fc_set['lons'][:n],fc_set['lats'][:n],'ro',markersize=(10-n%5),label='%s'%MODE) 
         #,markerfacecolor='r''%d'%n ,color='r' ,linewidth=4 ,marker='o'
@@ -103,10 +128,10 @@ def animate(n):
                 ax.annotate('25/1',xy=po,xytext=pt,fontsize=6,arrowprops=dict(arrowstyle="wedge"))
             if n==23:
                 ax.annotate('26/1',xy=po,xytext=pt,fontsize=6,arrowprops=dict(arrowstyle="wedge"))
-            if n==30:
+            if n==31:
                 ax.annotate('26/1 14:31',xy=po,xytext=pt,fontsize=6,arrowprops=dict(arrowstyle="wedge"))
             ax.plot(dr_set['lons'][n-5:n],dr_set['lats'][n-5:n],'bo-',markersize=(10-n%5),label='Drifter')
-    
+    '''
 anim = animation.FuncAnimation(fig, animate, frames=len(fc_set['lons']), interval=50)
 plt.legend(loc='lower right',fontsize=10)
 en_run_time = datetime.now()
