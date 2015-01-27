@@ -1,3 +1,4 @@
+import sys
 import netCDF4
 from datetime import datetime,timedelta
 import numpy as np
@@ -72,7 +73,7 @@ def getrawdrift(did,filename):
    newData = df.ix[index]
    for k in newData[0].index:
       #dt1=dt.datetime(int(filename[-10:-6]),df[2][k],df[3][k],df[4][k],df[5][k],0,0,pytz.utc)
-      dt1=datetime(2014, newData[2][k],newData[3][k],newData[4][k],newData[5][k],0,0,pytz.utc)
+      dt1=datetime(2015, newData[2][k],newData[3][k],newData[4][k],newData[5][k],0,0,pytz.utc)
       dtime.append(dt1)
    return newData[8],newData[7],dtime,newData[9]
 
@@ -254,7 +255,6 @@ def index_of_value(dlist,dvalue):
         i+=1
     return index
 
-
 class track(object):
     def __init__(self, startpoint):
         '''
@@ -268,7 +268,7 @@ class track(object):
         '''        
         pass                                 
         
-    def bbox2ij(self, lons, lats, bbox):
+    def bbox2ij(self, lon, lat, lons, lats, length=0.06):  #0.3/5==0.06
         """
         Return tuple of indices of points that are completely covered by the 
         specific boundary box.
@@ -279,13 +279,14 @@ class track(object):
         Example
         -------  
         >>> i0,i1,j0,j1 = bbox2ij(lat_rho,lon_rho,[-71, -63., 39., 46])
-        >>> h_subset = nc.variables['h'][j0:j1,i0:i1]       
+        >>> h_subset = nc.variables['h'][j0:j1,i0:i1]
+        length: the boundary box.
         """
-        
+        bbox = [lon-length, lon+length, lat-length, lat+length]
         bbox = np.array(bbox)
         mypath = np.array([bbox[[0,1,1,0]],bbox[[2,2,3,3]]]).T
         p = path.Path(mypath)
-        points = np.vstack((lons.flatten(),lats.flatten())).T
+        points = np.vstack((lons.flatten(),lats.flatten())).T  #numpy.vstack(tup):Stack arrays in sequence vertically
         tshape = np.shape(lons)
         inside = []
         
@@ -298,48 +299,35 @@ class track(object):
         '''check if there are no points inside the given area'''        
         
         if not index[0].tolist():          # bbox covers no area
-            raise Exception('no points in this area')
+            raise Exception('This point is not in the model area')
             
         else:
             return index
             
-    def nearest_point_index(self, lon, lat, lons, lats, length=1,num=4):
+    def nearest_point_index(self, lon, lat, lons, lats):  #,num=4
         '''
         Return the index of the nearest rho point.
         lon, lat: the coordinate of start point, float
         lats, lons: the coordinate of points to be calculated.
-        length: the boundary box.
         '''
-        bbox = [lon-length, lon+length, lat-length, lat+length]
-        index = self.bbox2ij(lons, lats, bbox)
-        lon_covered = lons[index]
-        lat_covered = lats[index]
-        cp = np.cos(lat_covered*np.pi/180.)
-        dx = (lon-lon_covered)*cp
-        dy = lat-lat_covered
-        dist = dx*dx+dy*dy
-
-        # get several nearest points
-        dist_sort = np.sort(dist)[0:9]
-        findex = np.where(dist==dist_sort[0])
-        lists = [[]] * len(findex)
-        
-        for i in range(len(findex)):
-            lists[i] = findex[i]
-            
-        if num > 1:
-            for j in range(1,num):
-                t = np.where(dist==dist_sort[j])
-                for i in range(len(findex)):
-                     lists[i] = np.append(lists[i], t[i])
-        indx = [i[lists] for i in index]
-        return indx, dist_sort[0:num]
-        '''
-        for only one point returned
-        mindist = np.argmin(dist)
-        indx = [i[mindist] for i in index]
-        return indx, dist[mindist]
-        '''
+        def min_distance(lon,lat,lons,lats):
+            '''Find out the nearest distance to (lon,lat),and return lon.distance units: meters'''
+            mapx = Basemap(projection='ortho',lat_0=lat,lon_0=lon,resolution='l')
+            dis_set = []
+            x,y = mapx(lon,lat)
+            for i,j in zip(lons,lats):
+                x2,y2 = mapx(i,j)
+                ss=math.sqrt((x-x2)**2+(y-y2)**2)
+                dis_set.append(ss)
+            dis = min(dis_set)
+            p = dis_set.index(dis)
+            lnp = lons[p]
+            return lnp,dis       
+        index = self.bbox2ij(lon, lat, lons, lats)
+        lon_covered = lons[index];  lat_covered = lats[index]       
+        lonp,distance = min_distance(lon,lat,lon_covered,lat_covered)
+        index = np.where(lons==lonp)
+        return index,distance
         
     def get_track(self, timeperiod, data):
         pass
@@ -371,7 +359,7 @@ class get_roms(track):
         return url
         '''
         self.starttime = starttime
-        # self.hours = int((endtime-starttime).total_seconds()/60/60) # get total hours
+        self.hours = int((endtime-starttime).total_seconds()/60/60) # get total hours
         # time_r = datetime(year=2006,month=1,day=9,hour=1,minute=0)
         # url_oceantime = 'http://tds.marine.rutgers.edu:8080/thredds/dodsC/roms/espresso/2006_da/his?ocean_time[0:1:69911]'
         url_oceantime = 'http://tds.marine.rutgers.edu:8080/thredds/dodsC/roms/espresso/2013_da/his_Best/ESPRESSO_Real-Time_v2_History_Best_Available_best.ncd?time'
@@ -393,7 +381,7 @@ class get_roms(track):
         '''
         Return index of the closest number in the list
         '''
-        index1, index2 = 0, len(numlist)
+        index1,index2 = 0, len(numlist)  
         indx = int(index2/2)
         if not numlist[0] < num < numlist[-1]:
             raise Exception('{0} is not in {1}'.format(str(num), str(numlist)))
@@ -437,9 +425,8 @@ class get_roms(track):
         if type(url) is str:
             nodes = self.__get_track(lon, lat, depth, url)
             
-        else:                                                                # case where there are two urls, one for start and one for stop time
-            nodes = dict(lon=[self.startpoint[0]],lat=[self.startpoint[1]])
-            
+        else:          # case where there are two urls, one for start and one for stop time
+            nodes = dict(lon=[self.startpoint[0]],lat=[self.startpoint[1]])           
             for i in url:
                 temp = self.__get_track(nodes['lon'][-1], nodes['lat'][-1], depth, i)
                 nodes['lon'].extend(temp['lon'][1:])
@@ -452,38 +439,30 @@ class get_roms(track):
         return points
         '''
         data = self.get_data(url)
-        nodes = dict(lon=lon, lat=lat)
-        mask = data['mask_rho'][:]
-        lon_rho = data['lon_rho'][:]
-        lat_rho = data['lat_rho'][:]
-        lons, lats = lon_rho[:-1, :-1], lat_rho[:-1, :-1]
+        nodes = dict(lon=[lon], lat=[lat])
+        #mask = data['mask_rho'][:]
+        lons = data['lon_rho'][:]
+        lats = data['lat_rho'][:]
+        #lons, lats = lon_rho[:-1, :-1], lat_rho[:-1, :-1]
         index, nearestdistance = self.nearest_point_index(lon,lat,lons,lats)
-        depth_layers = data['h'][index[0][0]][index[1][0]]*data['s_rho']
+        #print 'index',index,index[0][0],index[1][0]
+        depth_layers = data['h'][index]*data['s_rho']  #[0]][index[1][0]]
         layer = np.argmin(abs(depth_layers+depth))
-        u = data['u'][:,layer]
-        v = data['v'][:,layer]
+        #print layer  #layer = 35
         
-        for i in range(0, len(u)):
-            u_t = u[i][:-1, :]
-            v_t = v[i][:, :-1]
-            u_p = u_t[index[0][0]][index[1][0]]
-            v_p = v_t[index[0][0]][index[1][0]]
-
-            if not u_p or not v_p:
-                print 'point hit the land'
-                break
-            
-            dx = 60*60*float(u_p)
-            dy = 60*60*float(v_p)
-            lon = lon + dx/(111111*np.cos(lat*np.pi/180))
-            lat = lat + dy/111111
-            try:
-                index, nearestdistance = self.nearest_point_index(lon,lat,lons,lats)
-            except(Exception):
-                print 'Point hits land or model boundary'
-                break
-            nodes['lon'] = np.append(nodes['lon'],lon)
-            nodes['lat'] = np.append(nodes['lat'],lat)
+        for i in range(abs(self.hours)/2):  #Roms points update every 2 hour
+            u_t = data['u'][2*i][layer][index[0][0]][index[1][0]]
+            v_t = data['v'][2*i][layer][index[0][0]][index[1][0]]
+            dx = 2*60*60*u_t#float(u_p)
+            dy = 2*60*60*v_t#float(v_p)
+            mapx = Basemap(projection='ortho',lat_0=lat,lon_0=lon,resolution='l')                        
+            x,y = mapx(lon,lat)
+            lon,lat = mapx(x+dx,y+dy,inverse=True)
+            print 'lon,lat,i',lon,lat,i
+            #lon = lon + dx/(111111*np.cos(lat*np.pi/180))
+            #lat = lat + dy/111111
+            nodes['lon'].append(lon);  nodes['lat'].append(lat)
+            index, nearestdistance = self.nearest_point_index(lon,lat,lons,lats)
         return nodes
         
 class get_fvcom(track):
@@ -674,13 +653,12 @@ class get_fvcom(track):
         ??? Retrieves data?
         '''
         #self.data = jata.get_nc_data(url,'lon','lat','latc','lonc',
-        self.data = get_nc_data(url,'lon','lat','latc','lonc',
-                                     'u','v','siglay','h')
+        self.data = get_nc_data(url,'lon','lat','latc','lonc','u','v','siglay','h')
         return self.data
         
     def get_track(self, lon, lat, depth, url):
         '''
-        ???????
+        Get forcast nodes start at lon,lat
         '''
         if type(url) is str:
             nodes = dict(lon=[lon],lat=[lat])
@@ -688,13 +666,11 @@ class get_fvcom(track):
             nodes['lon'].extend(temp['lon'])
             nodes['lat'].extend(temp['lat'])
         else:
-            nodes = dict(lon=[lon],lat=[lat])
-            
+            nodes = dict(lon=[lon],lat=[lat])            
             for i in url:
                 temp = self.__get_track(nodes['lon'][-1], nodes['lat'][-1], depth, i)
                 nodes['lat'].extend(temp['lat'])
-                nodes['lon'].extend(temp['lon'])
-                
+                nodes['lon'].extend(temp['lon'])                
         return nodes
         
     def __get_track(self, lon, lat, depth, url):
@@ -702,55 +678,44 @@ class get_fvcom(track):
         start, end: indices of some period
         data: a dict that has 'u' and 'v'
         '''
-        data = self.get_data(url)
-        lonc, latc = data['lonc'][:], data['latc'][:]
-        lonv, latv = data['lon'][:], data['lat'][:]
+        data = self.get_data(url)        
+        lonc, latc = data['lonc'][:], data['latc'][:]  #quantity:165095
+        lonv, latv = data['lon'][:], data['lat'][:]    #Quantity:98432
         h = data['h'][:]
-        siglay = data['siglay'][:]
-        
+        siglay = data['siglay'][:]        
         if lon>90:
             lon, lat = dm2dd(lon, lat)
-        nodes = dict(lon=[], lat=[])
-        kf,distanceF = self.nearest_point_index(lon,lat,lonc,latc,num=1)
-        kv,distanceV = self.nearest_point_index(lon,lat,lonv,latv,num=1)
-        
-        if h[kv] < 0:
+        nodes = dict(lon=[lon], lat=[lat])
+        kf,distanceF = self.nearest_point_index(lon,lat,lonc,latc)#,num=1
+        kv,distanceV = self.nearest_point_index(lon,lat,lonv,latv)
+        if not kv:
             sys.exit('Sorry, your position is on land, please try another point')
-        depth_total = siglay[:,kv]*h[kv]
-        
-###########################layer#####################################
-        '''
-        ????? Layer for what?????
-        '''
+        depth_total = siglay[:,[kv]]*h[[kv]]  #????  
+        #print 'depth_total',depth_total
         layer = np.argmin(abs(depth_total-depth))
-            
         for i in range(abs(self.hours)):
             if self.hours<0: # backwards case
-                #u_t = -1*data['u'][abs(self.hours)-i, layer, kf[0][0]]
-                #v_t = -1*data['v'][abs(self.hours)-i, layer, kf[0][0]]
-                u_t = -1*data['u'][i, layer, kf[0][0]]
-                v_t = -1*data['v'][i, layer, kf[0][0]]
+                u_t = -1*data['u'][i, layer, kf[0]][0]
+                v_t = -1*data['v'][i, layer, kf[0]][0]
             else:
-                u_t = data['u'][i, layer, kf[0][0]]
-                v_t = data['v'][i, layer, kf[0][0]] 
+                u_t = data['u'][i, layer][kf][0]
+                v_t = data['v'][i, layer][kf][0]
             #print 'u_t, v_t, i', u_t, v_t, i
-            dx = 60*60*u_t
-            dy = 60*60*v_t
-            lon = lon + (dx/(111111*np.cos(lat*np.pi/180)))
-            lat = lat + dy/111111
-            nodes['lon'].append(lon)
-            nodes['lat'].append(lat)
-            kf, distanceF = self.nearest_point_index(lon, lat, lonc, latc,num=1)
-            kv, distanceV = self.nearest_point_index(lon, lat, lonv, latv,num=1)
-            # depth_total = siglay[:][kv]*h[kv]
-            
-            if distanceV>=.1:
-                
-                #if i==start:
-                if i==0:
+            dx = 60*60*u_t; dy = 60*60*v_t
+            mapx = Basemap(projection='ortho',lat_0=lat,lon_0=lon,resolution='l')                        
+            x,y = mapx(lon,lat)
+            lon,lat = mapx(x+dx,y+dy,inverse=True)
+            print 'lon,lat,i',lon,lat,i
+            #lon = lon + (dx/(111111*np.cos(lat*np.pi/180)))
+            #lat = lat + dy/111111
+            nodes['lon'].append(lon);  nodes['lat'].append(lat)
+            kf, distanceF = self.nearest_point_index(lon, lat, lonc, latc)
+            kv, distanceV = self.nearest_point_index(lon, lat, lonv, latv)
+            print 'distanceV',distanceV            
+            if i==0:
+                if distanceV>=1000:                
                     print 'Sorry, your start position is NOT in the model domain'
-                    break
-                
+                    break                
         return nodes
         
 class get_drifter(track):
@@ -779,9 +744,9 @@ class get_drifter(track):
             endtime = starttime + timedelta(days=days)
             i = self.__cmptime(starttime, nodes['time'])
             j = self.__cmptime(endtime, nodes['time'])
-            nodes['lon'] = nodes['lon'][i:j+1]
-            nodes['lat'] = nodes['lat'][i:j+1]
-            nodes['time'] = nodes['time'][i:j+1]
+            nodes['lon'] = nodes['lon'][i:j]
+            nodes['lat'] = nodes['lat'][i:j]
+            nodes['time'] = nodes['time'][i:j]
         else:
             i = self.__cmptime(starttime, nodes['time'])
             nodes['lon'] = nodes['lon'][i:-1]
@@ -1040,7 +1005,7 @@ def draw_basemap(fig, ax, points, interval_lon=0.3, interval_lat=0.3):
     
     lons = points['lons']
     lats = points['lats']
-    size = max((max(lons)-min(lons)),(max(lats)-min(lats)))/2
+    size = max((max(lons)-min(lons)),(max(lats)-min(lats)))/4
     map_lon = [min(lons)-size,max(lons)+size]
     map_lat = [min(lats)-size,max(lats)+size]
     
