@@ -18,13 +18,40 @@ bbox = np.array(bbox)'''
                                      'u','v','siglay','h')
         return self.data  '''
 import sys
+import numpy as np
 import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
 import pytz
-from M_track_functions import get_drifter,get_fvcom,get_roms,draw_basemap,distance,uniquecolors
+from track_functions import get_drifter,get_fvcom,get_roms,draw_basemap,distance,uniquecolors
 from matplotlib import animation
 from pandas import Series,DataFrame
-start_time = datetime(2015,1,20,0,0,0,0,pytz.UTC)
+MODEL = 'forecast'
+model_points=np.load('model_points.npz')
+stp_num = 2; seg_num = 24
+lon_set = [[]]*stp_num; lat_set = [[]]*stp_num
+for i in xrange(stp_num):
+    #print len(model_points['lon']),len(model_points['lat'])
+    lon_set[i] = model_points['lon'][seg_num*i:seg_num*(1+i)]
+    lat_set[i] = model_points['lat'][seg_num*i:seg_num*(1+i)]
+arr_lon = np.array(lon_set).T; arr_lat = np.array(lat_set).T
+points = {'lats':[],'lons':[]}  # collect all points we've gained
+points['lats'].extend(model_points['lat']); points['lons'].extend(model_points['lon'])
+#points['lats'].extend(drifter_points['lat']); points['lons'].extend(drifter_points['lon'])
+fig = plt.figure() #figsize=(16,9)
+ax = fig.add_subplot(111)
+draw_basemap(fig, ax, points)
+def animate(n):
+    ax.plot(arr_lon[n],arr_lat[n],'ro-',markersize=8,label='forecast')
+anim = animation.FuncAnimation(fig, animate, frames=seg_num, interval=50)
+plt.legend(loc='lower right',fontsize=10)
+###################################################
+en_run_time = datetime.now()
+#print 'Take '+str(en_run_time-st_run_time)+' run the code. End at '+str(en_run_time) 
+anim.save('%s-demo_%s.gif'%(MODEL,en_run_time.strftime("%d-DEC-%H:%M")),
+          writer='imagemagick',fps=5,dpi=150) #ffmpeg,imagemagick,mencoder fps=20'''
+plt.show()
+
+'''start_time = datetime(2015,1,20,0,0,0,0,pytz.UTC)
 end_time = datetime(2015,1,21,0,0,0,0,pytz.UTC)
 GRID = 'massbay'
 DEPTH=-1
@@ -35,10 +62,7 @@ if MODEL in ('FVCOM','BOTH'):
     get_obj = get_fvcom(GRID)
     url_fvcom = get_obj.get_url(start_time,end_time)
     #poin = get_obj.get_data(url_fvcom)
-    '''lonc = poin['lonc']#.flatten()
-    latc = poin['latc']#.flatten()
-    lons = poin['lon']#.flatten()
-    lats = poin['lat']'''
+
     point = get_obj.get_track(st_point[1],st_point[0],DEPTH,url_fvcom)
 if MODEL in ('ROMS', 'BOTH'):
     get_obj = get_roms()
@@ -57,7 +81,7 @@ draw_basemap(fig, ax, points)
 ax.plot(point['lon'],point['lat'],'ro',markersize=4) #,label='Startpoint'
 #ax.plot(lonc,latc,'bo',markersize=4) #,label='Startpoint'
 #point = get_obj.get_data(url_fvcom)
-plt.show()
+plt.show()'''
 '''lon=-70.183480; lat=41.789235
 #if lon<0: lon=lon+360.0 
 #if lat<0: lat=-lat            
