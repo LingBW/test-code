@@ -71,34 +71,27 @@ elif Option == 3: # click on a map
 ############################## Extract Data ###################################
 drifter_points = dict(lon=[],lat=[])
 model_points = dict(lon=[],lat=[])
-#fvcom_points = dict(lon=[],lat=[])
 if Option == 1:
     drifter = get_drifter(drifter_ID, INPUT_DATA)
     dr_points = drifter.get_track(start_time,)
     drifter_points['lon'].extend(dr_points['lon']); drifter_points['lat'].extend(dr_points['lat'])
     if MODEL=='FVCOM':
-        int1 = extract_fvcom_point(dr_points['time'][0],dr_points['time'][-1],dr_points['lon'][0],dr_points['lat'][0])
-    if MODEL=='ROMS':
-        int1 = extract_roms_point(dr_points['time'][0],dr_points['time'][-1],dr_points['lon'][0],dr_points['lat'][0])
-    end_time2 = dr_points['time'][-1] + timedelta(forecast_days)
-    if MODEL=='FVCOM':
+        point1 = extract_fvcom_point(dr_points['time'][0],dr_points['time'][-1],dr_points['lon'][0],dr_points['lat'][0])
+        end_time2 = dr_points['time'][-1] + timedelta(forecast_days)
         point2 = extract_fvcom_point(dr_points['time'][-1],end_time2,dr_points['lon'][-1],dr_points['lat'][-1])
     if MODEL=='ROMS':
+        point1 = extract_roms_point(dr_points['time'][0],dr_points['time'][-1],dr_points['lon'][0],dr_points['lat'][0])
+        end_time2 = dr_points['time'][-1] + timedelta(forecast_days)
         point2 = extract_roms_point(dr_points['time'][-1],end_time2,dr_points['lon'][-1],dr_points['lat'][-1])
     model_points['lon'].extend(point1['lon']); model_points['lat'].extend(point1['lat'])
     model_points['lon'].extend(point2['lon']); model_points['lat'].extend(point2['lat'])
-if Option==2 or Option==3:
+if Option==2 or Option==3:   
     end_time = start_time + timedelta(forecast_days)
     for i in range(len(st_lat)):
         if MODEL=='FVCOM': point = extract_fvcom_point(start_time,end_time,st_lon[i],st_lat[i])        
         if MODEL=='ROMS': point = extract_roms_point(start_time,end_time,st_lon[i],st_lat[i])
         model_points['lon'].extend(point['lon']); model_points['lat'].extend(point['lat'])
-    #np.save('model_lons.npy',model_points['lon']); np.save('model_lats.npy',model_points['lat'])
     np.savez('model_points.npz',lon=model_points['lon'],lat=model_points['lat'])
-    try:
-        np.savetxt('model_points.txt',model_points['lon'],delimiter=',')
-    except:
-        print 'It is not working'
     lon_set = [[]]*stp_num; lat_set = [[]]*stp_num
     seg_num = len(model_points['lon'])/stp_num
     for i in xrange(stp_num):
@@ -106,7 +99,6 @@ if Option==2 or Option==3:
         lat_set[i] = model_points['lat'][seg_num*i:seg_num*(1+i)]
     arr_lon = np.array(lon_set).T; arr_lat = np.array(lat_set).T
     
-
 ################################## Plot #######################################
 points = {'lats':[],'lons':[]}  # collect all points we've gained
 points['lats'].extend(model_points['lat']); points['lons'].extend(model_points['lon'])
@@ -114,52 +106,19 @@ points['lats'].extend(drifter_points['lat']); points['lons'].extend(drifter_poin
 fig = plt.figure() #figsize=(16,9)
 ax = fig.add_subplot(111)
 draw_basemap(fig, ax, points)
-#ax.plot(model_points['lon'],model_points['lat'],'ro-',markersize=8) #,label='Startpoint'c.
-plt.title('forecast track')#('Drifter: {0} {1} track'.format(drifter_ID,MODE))
-#colors=uniquecolors(len(points['lats'])) #config colors
-def animate(n):
-    ax.plot(arr_lon[n],arr_lat[n],'ro',markersize=8,label='forecast')
-###############
-'''def animate(n):  # the function of the animation
-    #ax.cla()
-    #del ax.lines() #apply to plot
-    #del ax.collection() #apply to scatter
-    if n<a[0]:
-        if n==0:
-            po = (dr_set['lons'][n]+0.005,dr_set['lats'][n]+0.005)
-            pt = (dr_set['lons'][n]+0.03,dr_set['lats'][n]+0.03)
-            ax.annotate(an[0],xy=po,xytext=pt,fontsize=8,arrowprops=dict(arrowstyle="wedge"))
-            pass
-        ax.plot(dr_set['lons'][n-1:n+1],dr_set['lats'][n-1:n+1],'bo-',markersize=6,label='Drifter')#10-n%5
-        ax.plot(fc_set['lons'][:n],fc_set['lats'][:n],'go-',markersize=4,label='%s'%MODE)
-    if n>=a[0] and n<a[1]:
-        if n==a[0]:
-            po = (dr_set['lons'][n]+0.005,dr_set['lats'][n]+0.005)
-            pt = (dr_set['lons'][n]+0.03,dr_set['lats'][n]+0.03)
-            ax.annotate(an[1],xy=po,xytext=pt,fontsize=8,arrowprops=dict(arrowstyle="wedge"))
-        ax.plot(dr_set['lons'][n-1:n+1],dr_set['lats'][n-1:n+1],'bo-',markersize=6,label='Drifter')
-        ax.plot(fc_set['lons'][a[0]:n],fc_set['lats'][a[0]:n],'yo-',markersize=4,label='%s'%MODE)
-    if n>=a[1] and n<a[2]:
-        if n==a[1]:
-            po = (dr_set['lons'][n]+0.005,dr_set['lats'][n]+0.005)
-            pt = (dr_set['lons'][n]+0.03,dr_set['lats'][n]+0.03)
-            ax.annotate(an[2],xy=po,xytext=pt,fontsize=8,arrowprops=dict(arrowstyle="wedge"))
-        if n==(a[2]-1):
-            ax.plot(dr_set['lons'][n-1:-1],dr_set['lats'][n-1:-1],'bo-',markersize=6,label='Drifter')
-            pass
-        ax.plot(dr_set['lons'][n-1:n+1],dr_set['lats'][n-1:n+1],'bo-',markersize=6,label='Drifter')
-        ax.plot(fc_set['lons'][a[1]:n],fc_set['lats'][a[1]:n],'co-',markersize=4,label='%s'%MODE)        
-    if n>=a[2]:
-        if n==a[2]:
-            po = (fc_set['lons'][n]+0.005,fc_set['lats'][n]+0.005)
-            pt = (fc_set['lons'][n]+0.03,fc_set['lats'][n]+0.03)
-            ax.annotate(an3,xy=po,xytext=pt,fontsize=8,arrowprops=dict(arrowstyle="wedge"))
-        ax.plot(fc_set['lons'][a[2]:n],fc_set['lats'][a[2]:n],'ro-',markersize=4,label='%s'%MODE)'''  
-anim = animation.FuncAnimation(fig, animate, frames=seg_num, interval=50)
-plt.legend(loc='lower right',fontsize=10)
-###################################################
-en_run_time = datetime.now()
-print 'Take '+str(en_run_time-st_run_time)+' running the code. End at '+str(en_run_time) 
-anim.save('%s-demo_%s.gif'%(MODEL,en_run_time.strftime("%d-DEC-%H:%M")),
+if Option == 1:
+    plt.title('Drifter: {0} {1} track'.format(drifter_ID,MODEL))
+    #colors=uniquecolors(len(points['lats'])) #config colors
+if Option==2 or Option==3:    
+    plt.title('forecast track')#('Drifter: {0} {1} track'.format(drifter_ID,MODE))
+    #colors=uniquecolors(len(points['lats'])) #config colors
+    def animate(n): # the function of the animation
+        #ax.cla()#del ax.lines() #apply to plot#del ax.collection() #apply to scatter
+        ax.plot(arr_lon[n],arr_lat[n],'ro',markersize=8,label='forecast')
+    anim = animation.FuncAnimation(fig, animate, frames=seg_num, interval=50)
+    en_run_time = datetime.now()
+    anim.save('%s-demo_%s.gif'%(MODEL,en_run_time.strftime("%d-DEC-%H:%M")),
           writer='imagemagick',fps=5,dpi=150) #ffmpeg,imagemagick,mencoder fps=20'''
+###################################################
+print 'Take '+str(en_run_time-st_run_time)+' running the code. End at '+str(en_run_time) 
 plt.show()
