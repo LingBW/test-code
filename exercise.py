@@ -27,7 +27,7 @@ from matplotlib import animation
 from pandas import Series,DataFrame
 MODEL = 'forecast'
 model_points=np.load('model_points.npz')
-stp_num = 2; seg_num = 24
+stp_num = 2; seg_num = 25
 lon_set = [[]]*stp_num; lat_set = [[]]*stp_num
 for i in xrange(stp_num):
     #print len(model_points['lon']),len(model_points['lat'])
@@ -41,7 +41,7 @@ fig = plt.figure() #figsize=(16,9)
 ax = fig.add_subplot(111)
 draw_basemap(fig, ax, points)
 def animate(n):
-    ax.plot(arr_lon[n],arr_lat[n],'ro-',markersize=8,label='forecast')
+    ax.plot(arr_lon[n],arr_lat[n],'ro-',markersize=8,color='c',label='forecast')
 anim = animation.FuncAnimation(fig, animate, frames=seg_num, interval=50)
 plt.legend(loc='lower right',fontsize=10)
 ###################################################
@@ -88,3 +88,10 @@ plt.show()'''
 
 mapx = Basemap(projection='ortho',lat_0=lat,lon_0=lon,resolution='l')
 x,y = mapx(lon,lat)'''
+'''ln = np.array(model_points['lon'],dtype=np.float64); lt = np.array(model_points['lat'],dtype=np.float64)
+    np.savez('model_points.npz',lon=ln,lat=lt)
+    try:
+        np.savetxt('model_points.txt',ln,delimiter=',',)
+    except:
+        print 'It is not working'
+'''
