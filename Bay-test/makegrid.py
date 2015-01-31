@@ -68,14 +68,19 @@ def points_between(st_point,en_point,x):
     returns lat0,lono
     """
     
-    print st_point,en_point
+    #print st_point,en_point
     lato=[]
     lono=[]
+    if not st_point: 
+        lato.append(en_point[0]); lono.append(en_point[1])
+        return lato,lono
+    if not en_point: 
+        lato.append(st_point[0]); lono.append(st_point[1])
+        return lato,lono
     lati=(en_point[0]-st_point[0])/float(x+1)
     loni=(en_point[1]-st_point[1])/float(x+1)
     for j in range(x+2):
         lato.append(st_point[0]+lati*j)
         lono.append(st_point[1]+loni*j)
     return lato,lono
-
 
