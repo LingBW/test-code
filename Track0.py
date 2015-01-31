@@ -59,7 +59,7 @@ elif Option==2: # user specified pts
     stp_num = len(st_lat)
     print 'You added %d points.' % stp_num
 elif Option == 3: # click on a map    
-    start_time = datetime(2015,1,28,0,0,0,0,pytz.UTC)
+    start_time = datetime(2015,1,29,0,0,0,0,pytz.UTC)
     forecast_days = 1
     MODEL = 'FVCOM'
     #track_way = 'forwards' # two options: forwards,backwards
@@ -75,6 +75,7 @@ if Option == 1:
     drifter = get_drifter(drifter_ID, INPUT_DATA)
     dr_points = drifter.get_track(start_time,)
     drifter_points['lon'].extend(dr_points['lon']); drifter_points['lat'].extend(dr_points['lat'])
+    np.savez('drifter_points.npz',lon=drifter_points['lon'],lat=drifter_points['lat'])
     if MODEL=='FVCOM':
         point1 = extract_fvcom_point(dr_points['time'][0],dr_points['time'][-1],dr_points['lon'][0],dr_points['lat'][0])
         end_time2 = dr_points['time'][-1] + timedelta(forecast_days)
@@ -85,6 +86,7 @@ if Option == 1:
         point2 = extract_roms_point(dr_points['time'][-1],end_time2,dr_points['lon'][-1],dr_points['lat'][-1])
     model_points['lon'].extend(point1['lon']); model_points['lat'].extend(point1['lat'])
     model_points['lon'].extend(point2['lon']); model_points['lat'].extend(point2['lat'])
+    np.savez('model_points.npz',lon=model_points['lon'],lat=model_points['lat'])
 if Option==2 or Option==3:   
     end_time = start_time + timedelta(forecast_days)
     for i in range(len(st_lat)):
@@ -109,6 +111,11 @@ draw_basemap(fig, ax, points)
 if Option == 1:
     plt.title('Drifter: {0} {1} track'.format(drifter_ID,MODEL))
     #colors=uniquecolors(len(points['lats'])) #config colors
+    def animate(n): # the function of the animation
+        if n<len(drifter_points['lon']):
+            ax.plot(drifter_points['lon'][n],drifter_points['lat'][n],'bo-',markersize=8,label='forecast')
+        ax.plot(model_points['lon'][n],model_points['lat'][n],'ro',markersize=8,label='forecast')
+    anim = animation.FuncAnimation(fig, animate, frames=len(model_points['lon']), interval=50)
 if Option==2 or Option==3:    
     plt.title('forecast track')#('Drifter: {0} {1} track'.format(drifter_ID,MODE))
     #colors=uniquecolors(len(points['lats'])) #config colors
@@ -116,9 +123,10 @@ if Option==2 or Option==3:
         #ax.cla()#del ax.lines() #apply to plot#del ax.collection() #apply to scatter
         ax.plot(arr_lon[n],arr_lat[n],'ro',markersize=8,label='forecast')
     anim = animation.FuncAnimation(fig, animate, frames=seg_num, interval=50)
-    en_run_time = datetime.now()
-    anim.save('%s-demo_%s.gif'%(MODEL,en_run_time.strftime("%d-DEC-%H:%M")),
-          writer='imagemagick',fps=5,dpi=150) #ffmpeg,imagemagick,mencoder fps=20'''
+    
 ###################################################
-print 'Take '+str(en_run_time-st_run_time)+' running the code. End at '+str(en_run_time) 
+en_run_time = datetime.now()
+print 'Take '+str(en_run_time-st_run_time)+' running the code. End at '+str(en_run_time)
+anim.save('%s-forecast_%s.gif'%(MODEL,en_run_time.strftime("%d-DEC-%H:%M")),
+          writer='imagemagick',fps=5,dpi=150) #ffmpeg,imagemagick,mencoder fps=20''' 
 plt.show()
