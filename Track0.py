@@ -37,35 +37,35 @@ Option 1: ...
 Option 2: ....
 Option 3: ....
 '''
-Option = 3  # 2,3
+Option = 3  # 1,2,3
 #################
 if Option == 1:    
     drifter_ID = 140420691 #[140410704,140410706,140410707,140410708,140410709] 140430701] 
-    start_time = datetime(2015,1,24,0,0,0,0,pytz.UTC)           
     forecast_days = 2
+    start_time = datetime.now(pytz.UTC)-timedelta(forecast_days) #datetime(2015,1,24,0,0,0,0,pytz.UTC)    
     MODEL = 'FVCOM'              # 'FVCOM', 'ROMS' or 'BOTH'                     
     #MODE = 'FORECAST'           # 'FORECAST' or 'HINDCAST'
     INPUT_DATA = 'drift_X.dat'# if raw data, use "drift_X.dat";if want to get drifter data in database, use "None"    
     print "Drifter: %s forecast %d days"%(drifter_ID,forecast_days)
-elif Option==2: # user specified pts    
-    start_time = datetime(2015,1,28,0,0,0,0,pytz.UTC)
-    forecast_days = 1
+elif Option==2: # user specified pts       
+    track_time = 0 # start time from now ,positive stands for future,negative stands for past.    
+    start_time = datetime.now(pytz.UTC)+timedelta(track_time)
     MODEL = 'FVCOM'
+    forecast_days = 2
     #track_way = 'forwards' # two options: forwards,backwards   
     point1 = (42.013508, -70.289329)  # Point data structure:(lat,lon)
     point2 = ()#41.686903, -70.665452#41.876636, -70.410178
     (st_lat,st_lon)=points_between(point1,point2,1)
-    print st_lat,st_lon
     stp_num = len(st_lat)
     print 'You added %d points.' % stp_num
 elif Option == 3: # click on a map    
-    start_time = datetime(2015,1,29,0,0,0,0,pytz.UTC)
-    forecast_days = 1
+    track_time = 0 # start time from now ,positive stands for future,negative stands for past.    
+    start_time = datetime.now(pytz.UTC)+timedelta(track_time)
     MODEL = 'FVCOM'
+    forecast_days = 2
     #track_way = 'forwards' # two options: forwards,backwards
     numpts=9 # at most added on the map
     [st_lon,st_lat]=clickmap(numpts) # gets lat/lon by clicking map
-    print st_lat,st_lon
     stp_num = len(st_lat)
     print 'You added %d points.' % stp_num
 ############################## Extract Data ###################################
@@ -107,7 +107,7 @@ points['lats'].extend(model_points['lat']); points['lons'].extend(model_points['
 points['lats'].extend(drifter_points['lat']); points['lons'].extend(drifter_points['lon'])
 fig = plt.figure() #figsize=(16,9)
 ax = fig.add_subplot(111)
-draw_basemap(fig, ax, points)
+draw_basemap(fig, ax, points)  # points is using here
 if Option == 1:
     plt.title('Drifter: {0} {1} track'.format(drifter_ID,MODEL))
     #colors=uniquecolors(len(points['lats'])) #config colors
