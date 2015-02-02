@@ -33,18 +33,19 @@ def extract_roms_point(sart_time, end_time, st_lon, st_lat):
     return point
 ############################### Options #######################################
 '''
-Option 1: We'll get a GIF image of one drifter track(blue) and two forecast track(red).
+Option 1: We'll get a GIF image includes one drifter track(blue) and two forecast track(red).
           The one of the forecast track starts at first drifter point to contrast with 
           the drifter track; the other one starts at the last drifter point forecasts 
-          where it going to.You need to provide Drifter ID, and modify the forecast_days values, 
+          where it going to.You need to provide Drifter ID, and specify the forecast_days values, 
           which is the forecast days from now.
-Option 2: Poviding a way specify the start point of the forecast. You can specify point1 
+Option 2: Providing a way specify the start point of the forecast. You can specify point1 
           and point2, or whatever points between the two points. You can also change the forecast_days 
           value, which determines the days of the forecast track of each start points. We will get a
           GIF image ,too.
 Option 3: You can add the start points at most nine points on the map provided.You can also change 
           the forecast_days value, which determines the days of the forecast track of each start points. 
           We will get a GIF image ,too.
+          
 '''
 Option = 3  # 1,2,3
 #################
@@ -108,7 +109,7 @@ if Option==2 or Option==3:
     for i in xrange(stp_num):
         lon_set[i] = model_points['lon'][seg_num*i:seg_num*(1+i)]
         lat_set[i] = model_points['lat'][seg_num*i:seg_num*(1+i)]
-    arr_lon = np.array(lon_set).T; arr_lat = np.array(lat_set).T
+    #arr_lon = np.array(lon_set).T; arr_lat = np.array(lat_set).T
     
 ################################## Plot #######################################
 points = {'lats':[],'lons':[]}  # collect all points we've gained
@@ -118,7 +119,7 @@ fig = plt.figure() #figsize=(16,9)
 ax = fig.add_subplot(111)
 draw_basemap(fig, ax, points)  # points is using here
 if Option == 1:
-    plt.title('Drifter: {0} {1} track'.format(drifter_ID,MODEL))
+    plt.title('Drifter: {0} {1} track'.format(drifter_ID,MODEL))    
     #colors=uniquecolors(len(points['lats'])) #config colors
     def animate(n): # the function of the animation
         if n<len(drifter_points['lon']):
@@ -127,10 +128,14 @@ if Option == 1:
     anim = animation.FuncAnimation(fig, animate, frames=len(model_points['lon']), interval=50)
 if Option==2 or Option==3:    
     plt.title('forecast track')#('Drifter: {0} {1} track'.format(drifter_ID,MODE))
-    #colors=uniquecolors(len(points['lats'])) #config colors
-    def animate(n): # the function of the animation
-        #ax.cla()#del ax.lines() #apply to plot#del ax.collection() #apply to scatter
-        ax.plot(arr_lon[n],arr_lat[n],'ro',markersize=8,label='forecast')
+    colors=uniquecolors(stp_num) #config colors
+    def animate(n):
+        #del ax.lines()
+        for j in xrange(stp_num):
+            if n==0:
+                ax.annotate('Start %d'%(j+1), xy=(lon_set[j][0],lat_set[j][0]),xytext=(lon_set[j][0]+0.03,lat_set[j][0]+0.03),
+                            fontsize=6,arrowprops=dict(arrowstyle="wedge")) #facecolor=colors[i]'''
+            ax.plot(lon_set[j][:n],lat_set[j][:n],'o-',color=colors[j],markersize=6,label='forecast') #markerfacecolor='r',
     anim = animation.FuncAnimation(fig, animate, frames=seg_num, interval=50)
     
 ###################################################
