@@ -33,9 +33,18 @@ def extract_roms_point(sart_time, end_time, st_lon, st_lat):
     return point
 ############################### Options #######################################
 '''
-Option 1: ...
-Option 2: ....
-Option 3: ....
+Option 1: We'll get a GIF image of one drifter track(blue) and two forecast track(red).
+          The one of the forecast track starts at first drifter point to contrast with 
+          the drifter track; the other one starts at the last drifter point forecasts 
+          where it going to.You need to provide Drifter ID, and modify the forecast_days values, 
+          which is the forecast days from now.
+Option 2: Poviding a way specify the start point of the forecast. You can specify point1 
+          and point2, or whatever points between the two points. You can also change the forecast_days 
+          value, which determines the days of the forecast track of each start points. We will get a
+          GIF image ,too.
+Option 3: You can add the start points at most nine points on the map provided.You can also change 
+          the forecast_days value, which determines the days of the forecast track of each start points. 
+          We will get a GIF image ,too.
 '''
 Option = 3  # 1,2,3
 #################
@@ -55,14 +64,14 @@ elif Option==2: # user specified pts
     #track_way = 'forwards' # two options: forwards,backwards   
     point1 = (42.013508, -70.289329)  # Point data structure:(lat,lon)
     point2 = ()#41.686903, -70.665452#41.876636, -70.410178
-    (st_lat,st_lon)=points_between(point1,point2,1)
+    (st_lat,st_lon)=points_between(point1,point2,1) # The number parameter is the number between the two points.
     stp_num = len(st_lat)
     print 'You added %d points.' % stp_num
-elif Option == 3: # click on a map    
+elif Option == 3: # click on a map , press ENTER ended.   
     track_time = 0 # start time from now ,positive stands for future,negative stands for past.    
     start_time = datetime.now(pytz.UTC)+timedelta(track_time)
     MODEL = 'FVCOM'
-    forecast_days = 2
+    forecast_days = 1
     #track_way = 'forwards' # two options: forwards,backwards
     numpts=9 # at most added on the map
     [st_lon,st_lat]=clickmap(numpts) # gets lat/lon by clicking map
@@ -127,6 +136,6 @@ if Option==2 or Option==3:
 ###################################################
 en_run_time = datetime.now()
 print 'Take '+str(en_run_time-st_run_time)+' running the code. End at '+str(en_run_time)
-anim.save('%s-forecast_%s.gif'%(MODEL,en_run_time.strftime("%d-DEC-%H:%M")),
+'''anim.save('%s-forecast_%s.gif'%(MODEL,en_run_time.strftime("%d-DEC-%H:%M")),
           writer='imagemagick',fps=5,dpi=150) #ffmpeg,imagemagick,mencoder fps=20''' 
 plt.show()
