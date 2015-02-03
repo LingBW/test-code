@@ -14,23 +14,9 @@ import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
 import pytz
 from makegrid import clickmap, points_between
-from track_functions import get_drifter,get_fvcom,get_roms,draw_basemap,distance,uniquecolors
+from track_functions import extract_drifter_point,extract_fvcom_point,extract_roms_point,draw_basemap,uniquecolors
 from matplotlib import animation
-st_run_time = datetime.now() # Caculate the time running the code with en_run_time
-
-def extract_fvcom_point(sart_time, end_time, st_lon, st_lat):       
-    DEPTH = -1
-    GRID = 'massbay'     # '30yr', 'massbaya', 'GOM3a', 'GOM3' or 'massbay'
-    get_obj = get_fvcom(GRID)
-    url_fvcom = get_obj.get_url(start_time,end_time)
-    point = get_obj.get_track(st_lon,st_lat,DEPTH,url_fvcom)
-    return point
-def extract_roms_point(sart_time, end_time, st_lon, st_lat):
-    DEPTH = -1
-    get_obj = get_roms()
-    url_roms = get_obj.get_url(start_time,end_time)
-    point = get_obj.get_track(st_lon,st_lat,DEPTH,url_roms)
-    return point
+st_run_time = datetime.now() # Caculate execution time with en_run_time
 ############################### Options #######################################
 '''
 Option 1: We'll get a GIF image includes one drifter track(blue) and two forecast track(red).
@@ -44,46 +30,31 @@ Option 2: Providing a way specify the start point of the forecast. You can speci
           GIF image ,too.
 Option 3: You can add the start points at most nine points on the map provided.You can also change 
           the forecast_days value, which determines the days of the forecast track of each start points. 
-          We will get a GIF image ,too.
-          
+          We will get a GIF image ,too.          
 '''
+######## Hard codes ##########
 Option = 3  # 1,2,3
-#################
-if Option == 1:    
+MODEL = 'FVCOM'              # 'FVCOM', 'ROMS'
+forecast_days = 2
+if Option==1:
     drifter_ID = 140420691 #[140410704,140410706,140410707,140410708,140410709] 140430701] 
-    forecast_days = 2
-    start_time = datetime.now(pytz.UTC)-timedelta(forecast_days) #datetime(2015,1,24,0,0,0,0,pytz.UTC)    
-    MODEL = 'FVCOM'              # 'FVCOM', 'ROMS' or 'BOTH'                     
-    #MODE = 'FORECAST'           # 'FORECAST' or 'HINDCAST'
-    INPUT_DATA = 'drift_X.dat'# if raw data, use "drift_X.dat";if want to get drifter data in database, use "None"    
-    print "Drifter: %s forecast %d days"%(drifter_ID,forecast_days)
-elif Option==2: # user specified pts       
-    track_time = 0 # start time from now ,positive stands for future,negative stands for past.    
-    start_time = datetime.now(pytz.UTC)+timedelta(track_time)
-    MODEL = 'FVCOM'
-    forecast_days = 2
-    #track_way = 'forwards' # two options: forwards,backwards   
-    point1 = (42.013508, -70.289329)  # Point data structure:(lat,lon)
+    INPUT_DATA = 'drift_X.dat'# if raw data, use "drift_X.dat";if want to get drifter data in database, use "None"      
+if Option==2: # user specified pts
+    point1 = (41.956344, -70.462363)  # Point data structure:(lat,lon)
     point2 = ()#41.686903, -70.665452#41.876636, -70.410178
     (st_lat,st_lon)=points_between(point1,point2,1) # The number parameter is the number between the two points.
-    stp_num = len(st_lat)
-    print 'You added %d points.' % stp_num
-elif Option == 3: # click on a map , press ENTER ended.   
-    track_time = 0 # start time from now ,positive stands for future,negative stands for past.    
-    start_time = datetime.now(pytz.UTC)+timedelta(track_time)
-    MODEL = 'FVCOM'
-    forecast_days = 1
-    #track_way = 'forwards' # two options: forwards,backwards
-    numpts=9 # at most added on the map
+    track_time = 0 # starts from now ,positive stands for future,negative stands for past.
+if Option == 3: # click on a map , press ENTER ended.
+    numpts=9 # Points  added on the map at most
     [st_lon,st_lat]=clickmap(numpts) # gets lat/lon by clicking map
-    stp_num = len(st_lat)
-    print 'You added %d points.' % stp_num
+    track_time = 0 # starts from now ,positive stands for future,negative stands for past.    
 ############################## Extract Data ###################################
 drifter_points = dict(lon=[],lat=[])
 model_points = dict(lon=[],lat=[])
 if Option == 1:
-    drifter = get_drifter(drifter_ID, INPUT_DATA)
-    dr_points = drifter.get_track(start_time,)
+    print "Drifter: %s forecast %d days"%(drifter_ID,forecast_days)
+    start_time = datetime.now(pytz.UTC)-timedelta(forecast_days) #datetime(2015,1,24,0,0,0,0,pytz.UTC)
+    dr_points = extract_drifter_point(drifter_ID,INPUT_DATA,start_time,)
     drifter_points['lon'].extend(dr_points['lon']); drifter_points['lat'].extend(dr_points['lat'])
     np.savez('drifter_points.npz',lon=drifter_points['lon'],lat=drifter_points['lat'])
     if MODEL=='FVCOM':
@@ -97,7 +68,10 @@ if Option == 1:
     model_points['lon'].extend(point1['lon']); model_points['lat'].extend(point1['lat'])
     model_points['lon'].extend(point2['lon']); model_points['lat'].extend(point2['lat'])
     np.savez('model_points.npz',lon=model_points['lon'],lat=model_points['lat'])
-if Option==2 or Option==3:   
+if Option==2 or Option==3:
+    stp_num = len(st_lat)
+    print 'You added %d points.' % stp_num
+    start_time = datetime.now(pytz.UTC)+timedelta(track_time)
     end_time = start_time + timedelta(forecast_days)
     for i in range(len(st_lat)):
         if MODEL=='FVCOM': point = extract_fvcom_point(start_time,end_time,st_lon[i],st_lat[i])        
@@ -121,13 +95,21 @@ draw_basemap(fig, ax, points)  # points is using here
 if Option == 1:
     plt.title('Drifter: {0} {1} track'.format(drifter_ID,MODEL))    
     #colors=uniquecolors(len(points['lats'])) #config colors
+    an1 = str(dr_points['time'][0].strftime('%m/%d-%H:%M'))
+    an2 = str(dr_points['time'][-1].strftime('%m/%d-%H:%M'))
     def animate(n): # the function of the animation
+        if n==0:
+            ax.annotate(an1,xy=(dr_points['lon'][0],dr_points['lat'][0]),xytext=(dr_points['lon'][0]+0.03,dr_points['lat'][0]+0.03),
+                        fontsize=6,arrowprops=dict(arrowstyle="wedge")) #facecolor=colors[i]'''
+        if n==len(drifter_points['lon'])-1:
+            ax.annotate(an2,xy=(dr_points['lon'][-1],dr_points['lat'][-1]),xytext=(dr_points['lon'][-1]+0.03,dr_points['lat'][-1]+0.03),
+                        fontsize=6,arrowprops=dict(arrowstyle="wedge")) #facecolor=colors[i]'''
         if n<len(drifter_points['lon']):
-            ax.plot(drifter_points['lon'][n],drifter_points['lat'][n],'bo-',markersize=8,label='forecast')
+            ax.plot(drifter_points['lon'][:n],drifter_points['lat'][:n],'bo-',markersize=8,label='forecast')
         ax.plot(model_points['lon'][n],model_points['lat'][n],'ro',markersize=8,label='forecast')
     anim = animation.FuncAnimation(fig, animate, frames=len(model_points['lon']), interval=50)
 if Option==2 or Option==3:    
-    plt.title('forecast track')#('Drifter: {0} {1} track'.format(drifter_ID,MODE))
+    plt.title('%d points forecast track start at %s'%(stp_num,start_time.strftime('%m/%d-%H:%M')))
     colors=uniquecolors(stp_num) #config colors
     def animate(n):
         #del ax.lines()
@@ -141,6 +123,6 @@ if Option==2 or Option==3:
 ###################################################
 en_run_time = datetime.now()
 print 'Take '+str(en_run_time-st_run_time)+' running the code. End at '+str(en_run_time)
-'''anim.save('%s-forecast_%s.gif'%(MODEL,en_run_time.strftime("%d-DEC-%H:%M")),
+anim.save('%s-forecast_%s.gif'%(MODEL,en_run_time.strftime("%d-DEC-%H:%M")),
           writer='imagemagick',fps=5,dpi=150) #ffmpeg,imagemagick,mencoder fps=20''' 
 plt.show()
