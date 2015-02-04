@@ -27,7 +27,7 @@ from matplotlib import animation
 from pandas import Series,DataFrame
 MODEL = 'forecast'
 model_points=np.load('model_points.npz')
-stp_num = 2; seg_num = 25
+stp_num = 4; seg_num = 49
 lon_set = [[]]*stp_num; lat_set = [[]]*stp_num
 for i in xrange(stp_num):
     #print len(model_points['lon']),len(model_points['lat'])
@@ -40,8 +40,15 @@ points['lats'].extend(model_points['lat']); points['lons'].extend(model_points['
 fig = plt.figure() #figsize=(16,9)
 ax = fig.add_subplot(111)
 draw_basemap(fig, ax, points)
+plt.title('%d points forecast track'%(stp_num))
+colors = uniquecolors(stp_num) #config colors
 def animate(n):
-    ax.plot(arr_lon[n],arr_lat[n],'ro-',markersize=8,color='c',label='forecast')
+    #del ax.lines()
+    for j in xrange(stp_num):
+        if n==0:
+            ax.annotate('Start %d'%(j+1), xy=(lon_set[j][0],lat_set[j][0]),xytext=(lon_set[j][0]+0.03,lat_set[j][0]+0.03),
+                        fontsize=6,arrowprops=dict(arrowstyle="wedge")) #facecolor=colors[i]'''
+        ax.plot(lon_set[j][:n],lat_set[j][:n],'o-',color=colors[j],markersize=6,label='forecast') #markerfacecolor='r',
 anim = animation.FuncAnimation(fig, animate, frames=seg_num, interval=50)
 plt.legend(loc='lower right',fontsize=10)
 ###################################################
