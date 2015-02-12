@@ -55,7 +55,7 @@ if image_style=='plot':
 if image_style=='animation':
     anim.save('%s-forecast_%s.gif'%(MODEL,en_run_time.strftime("%d-%b-%H:%M")),writer='imagemagick',fps=5,dpi=150) #ffmpeg,imagemagick,mencoder fps=20'''
 plt.show()
-
+'''
 point = np.vstack((data['nbe'][0].flatten(),data['nbe'][1].flatten(),data['nbe'][2].flatten())).T
 wl=[]
 for i in point:
@@ -66,4 +66,4 @@ for i in point:
 tf = np.array(wl)
 index = np.where(tf==True)
 lons = data['lonc'][:][index]
-lats = data['latc'][:][index]
+lats = data['latc'][:][index]'''
