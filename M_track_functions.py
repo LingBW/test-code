@@ -290,8 +290,8 @@ class track(object):
         """
         '''bbox = [lon-length, lon+length, lat-length, lat+length]
         bbox = np.array(bbox)
-        mypath = np.array([bbox[[0,1,1,0]],bbox[[2,2,3,3]]]).T'''
-        p = Path.circle((lon,lat),radius=0.06)
+        mypath = np.array([bbox[[0,1,1,0]],bbox[[2,2,3,3]]]).T#'''
+        p = Path.circle((lon,lat),radius=length)
         points = np.vstack((lons.flatten(),lats.flatten())).T  #numpy.vstack(tup):Stack arrays in sequence vertically
         tshape = np.shape(lons)
         inside = []
@@ -305,8 +305,8 @@ class track(object):
         '''check if there are no points inside the given area'''        
         
         if not index[0].tolist():          # bbox covers no area
-            raise Exception('This point is not in the model area')
-            
+            print 'This point is out of the model area.'
+            raise Exception()
         else:
             return index
             
@@ -318,22 +318,28 @@ class track(object):
         '''
         def min_distance(lon,lat,lons,lats):
             '''Find out the nearest distance to (lon,lat),and return lon.distance units: meters'''
-            mapx = Basemap(projection='ortho',lat_0=lat,lon_0=lon,resolution='l')
+            #mapx = Basemap(projection='ortho',lat_0=lat,lon_0=lon,resolution='l')
             dis_set = []
-            x,y = mapx(lon,lat)
+            #x,y = mapx(lon,lat)
             for i,j in zip(lons,lats):
-                x2,y2 = mapx(i,j)
-                ss=math.sqrt((x-x2)**2+(y-y2)**2)
+                #x2,y2 = mapx(i,j)
+                ss=math.sqrt((lon-i)**2+(lat-j)**2)
+                #ss=math.sqrt((x-x2)**2+(y-y2)**2)
                 dis_set.append(ss)
             dis = min(dis_set)
             p = dis_set.index(dis)
-            lnp = lons[p]
-            return lnp,dis       
-        index = self.bbox2ij(lon, lat, lons, lats)
+            lonp = lons[p]; latp = lats[p]
+            return lonp,latp,dis       
+        index = self.bbox2ij(lon, lat, lons, lats)        
         lon_covered = lons[index];  lat_covered = lats[index]       
-        lonp,distance = min_distance(lon,lat,lon_covered,lat_covered)
-        index = np.where(lons==lonp)
-        return index,distance
+        lonp,latp,distance = min_distance(lon,lat,lon_covered,lat_covered)
+        index1 = np.where(lons==lonp)
+        index2 = np.where(lats==latp)
+        index = np.intersect1d(index1,index2)
+        #points = np.vstack((lons.flatten(),lats.flatten())).T         
+        #index = [i for i in xrange(len(points)) if ([lonp,latp]==points[i]).all()]
+        print 'index',index
+        return index,lonp,latp,distance
         
     def get_track(self, timeperiod, data):
         pass
@@ -374,13 +380,14 @@ class get_roms(track):
         t2 = (endtime - datetime(2013,05,18, tzinfo=pytz.UTC)).total_seconds()/3600
         self.index1 = self.__closest_num(t1, self.oceantime)
         self.index2 = self.__closest_num(t2, self.oceantime)
-        print self.index1, self.index2
+        #print self.index1, self.index2
         # index1 = (starttime - time_r).total_seconds()/60/60
         # index2 = index1 + self.hours
         # url = 'http://tds.marine.rutgers.edu:8080/thredds/dodsC/roms/espresso/2006_da/his?h[0:1:81][0:1:129],s_rho[0:1:35],lon_rho[0:1:81][0:1:129],lat_rho[0:1:81][0:1:129],mask_rho[0:1:81][0:1:129],u[{0}:1:{1}][0:1:35][0:1:81][0:1:128],v[{0}:1:{1}][0:1:35][0:1:80][0:1:129]'
         # url = 'http://tds.marine.rutgers.edu:8080/thredds/dodsC/roms/espresso/2006_da/his?s_rho[0:1:35],h[0:1:81][0:1:129],lon_rho[0:1:81][0:1:129],lat_rho[0:1:81][0:1:129],temp[{0}:1:{1}][0:1:35][0:1:81][0:1:129],ocean_time'
         # This one is hourly # url = 'http://tds.marine.rutgers.edu:8080/thredds/dodsC/roms/espresso/2013_da/his_Best/ESPRESSO_Real-Time_v2_History_Best_Available_best.ncd?h[0:1:81][0:1:129],s_rho[0:1:35],lon_rho[0:1:81][0:1:129],lat_rho[0:1:81][0:1:129],temp[{0}:1:{1}][0:1:35][0:1:81][0:1:129],time,mask_rho[0:1:81][0:1:129],u[{0}:1:{1}][0:1:35][0:1:81][0:1:128],v[{0}:1:{1}][0:1:35][0:1:80][0:1:129]'     
-        url = 'http://tds.marine.rutgers.edu:8080/thredds/dodsC/roms/espresso/2013_da/his_Best/ESPRESSO_Real-Time_v2_History_Best_Available_best.ncd?h[0:1:81][0:1:129],s_rho[0:1:35],lon_rho[0:1:81][0:1:129],lat_rho[0:1:81][0:1:129],temp[{0}:1:{1}][0:1:35][0:1:81][0:1:129],time,mask_rho[0:1:81][0:1:129],u[{0}:1:{1}][0:1:35][0:1:81][0:1:128],v[{0}:1:{1}][0:1:35][0:1:80][0:1:129]'      
+        url = 'http://tds.marine.rutgers.edu:8080/thredds/dodsC/roms/espresso/2013_da/his_Best/ESPRESSO_Real-Time_v2_History_Best_Available_best.ncd?h[0:1:81][0:1:129],mask_rho[0:1:81][0:1:129],u[{0}:1:{1}][0:1:35][0:1:81][0:1:128],v[{0}:1:{1}][0:1:35][0:1:80][0:1:129],s_rho[0:1:35],lon_rho[0:1:81][0:1:129],lat_rho[0:1:81][0:1:129]'
+             #'http://tds.marine.rutgers.edu:8080/thredds/dodsC/roms/espresso/2013_da/his_Best/ESPRESSO_Real-Time_v2_History_Best_Available_best.ncd?h[0:1:81][0:1:129],s_rho[0:1:35],lon_rho[0:1:81][0:1:129],lat_rho[0:1:81][0:1:129],temp[{0}:1:{1}][0:1:35][0:1:81][0:1:129],time,mask_rho[0:1:81][0:1:129],u[{0}:1:{1}][0:1:35][0:1:81][0:1:128],v[{0}:1:{1}][0:1:35][0:1:80][0:1:129]'      
         url = url.format(self.index1, self.index2)
         return url
     def __closest_num(self, num, numlist, i=0):
@@ -420,7 +427,7 @@ class get_roms(track):
         data = get_nc_data(url, 'lon_rho', 'lat_rho', 'mask_rho','u', 'v', 'h', 's_rho')
         return data
         
-    def get_track(self, lon, lat, depth, url):
+    def get_track(self, lon, lat, url,track_way):#, depth
         '''
         get the nodes of specific time period
         lon, lat: start point
@@ -429,52 +436,67 @@ class get_roms(track):
         '''
         self.startpoint = lon, lat
         if type(url) is str:
-            nodes = self.__get_track(lon, lat, depth, url)
+            nodes = self.__get_track(lon, lat, url,track_way)#, depth
             
         else:          # case where there are two urls, one for start and one for stop time
             nodes = dict(lon=[self.startpoint[0]],lat=[self.startpoint[1]])           
             for i in url:
-                temp = self.__get_track(nodes['lon'][-1], nodes['lat'][-1], depth, i)
+                temp = self.__get_track(nodes['lon'][-1], nodes['lat'][-1], i,track_way)#, depth
                 nodes['lon'].extend(temp['lon'][1:])
                 nodes['lat'].extend(temp['lat'][1:])
                 
         return nodes # dictionary of lat and lon
         
-    def __get_track(self, lon, lat, depth, url):
+    def __get_track(self, lon, lat, url, track_way):#, depth
         '''
         return points
         '''
         data = self.get_data(url)
         nodes = dict(lon=[lon], lat=[lat])
         #mask = data['mask_rho'][:]
+        layer = 35
         lons = data['lon_rho'][:]
         lats = data['lat_rho'][:]
+        u = data['u'][:,layer]; v = data['v'][:,layer]
         #lons, lats = lon_rho[:-1, :-1], lat_rho[:-1, :-1]
-        index, nearestdistance = self.nearest_point_index(lon,lat,lons,lats)
-        #print 'index',index,index[0][0],index[1][0]
-        depth_layers = data['h'][index]*data['s_rho']  #[0]][index[1][0]]
+        try:
+            index,lonp,latp,nearestdistance = self.nearest_point_index(lon,lat,lons,lats)
+        except:
+            return nodes
+        '''depth_layers = data['h'][index[0]][index[1]]*data['s_rho']  #[0]][index[1][0]]
         layer = np.argmin(abs(depth_layers+depth))
-        #print layer  #layer = 35
+        print layer#'''  
         
-        for i in range(abs(self.hours)/2):  #Roms points update every 2 hour
-            u_t = data['u'][2*i][layer][index[0][0]][index[1][0]]
-            v_t = data['v'][2*i][layer][index[0][0]][index[1][0]]
-            dx = 2*60*60*u_t#float(u_p)
-            dy = 2*60*60*v_t#float(v_p)
-            mapx = Basemap(projection='ortho',lat_0=lat,lon_0=lon,resolution='l')                        
-            x,y = mapx(lon,lat)
-            lon,lat = mapx(x+dx,y+dy,inverse=True)
+        
+        t = abs(self.hours)
+        for i in xrange(t):  #Roms points update every 2 hour
+            if track_way=='backward': # backwards case
+                u_t = -1*u[(t-1)-i][index[0],index[1]] #[0][0]][index[1][0]]
+                v_t = -1*v[(t-1)-i][index[0],index[1]]
+            else:
+                u_t = u[i][index[0],index[1]] #[index[0]][index[1]]#[0][0]][index[1][0]]
+                v_t = v[i][index[0],index[1]] #[index[0]][index[1]]#[0][0]][index[1][0]]
+            dx = 60*60*u_t#float(u_p)
+            dy = 60*60*v_t#float(v_p)
+            #mapx = Basemap(projection='ortho',lat_0=lat,lon_0=lon,resolution='l')                        
+            #x,y = mapx(lon,lat)
+            #lon,lat = mapx(x+dx,y+dy,inverse=True)
+            
+            lon = lon + dx/(111111*np.cos(lat*np.pi/180))
+            lat = lat + dy/111111
             print 'lon,lat,i',lon,lat,i
-            #lon = lon + dx/(111111*np.cos(lat*np.pi/180))
-            #lat = lat + dy/111111
+            try:
+                index,lonp,latp,nearestdistance = self.nearest_point_index(lon,lat,lons,lats)
+                print 'distance',nearestdistance
+            except:
+                return nodes
             nodes['lon'].append(lon);  nodes['lat'].append(lat)
-            index, nearestdistance = self.nearest_point_index(lon,lat,lons,lats)
         return nodes
         
 class get_fvcom(track):
     def __init__(self, mod):
         self.modelname = mod
-    def bbox2ij(self, lon, lat, lons, lats, length=0.02):  # 0.06->0.02
+    def bbox2ij(self, lon, lat, lons, lats, length=0.008):  #0.3/5==0.06
         """
         Return tuple of indices of points that are completely covered by the 
         specific boundary box.
@@ -488,11 +510,10 @@ class get_fvcom(track):
         >>> h_subset = nc.variables['h'][j0:j1,i0:i1]
         length: the boundary box.
         """
-        bn_points=np.load('boundary-points.npz')
         '''bbox = [lon-length, lon+length, lat-length, lat+length]
         bbox = np.array(bbox)
-        mypath = np.array([bbox[[0,1,1,0]],bbox[[2,2,3,3]]]).T #'''
-        p = path.Path(mypath)
+        mypath = np.array([bbox[[0,1,1,0]],bbox[[2,2,3,3]]]).T#'''
+        p = Path.circle((lon,lat),radius=length)
         points = np.vstack((lons.flatten(),lats.flatten())).T  #numpy.vstack(tup):Stack arrays in sequence vertically
         tshape = np.shape(lons)
         inside = []
@@ -506,7 +527,8 @@ class get_fvcom(track):
         '''check if there are no points inside the given area'''        
         
         if not index[0].tolist():          # bbox covers no area
-            raise Exception('This point is not in the model area')
+            print 'This point is out of the model area.'
+            raise Exception()
             
         else:
             return index
@@ -519,22 +541,34 @@ class get_fvcom(track):
         '''
         def min_distance(lon,lat,lons,lats):
             '''Find out the nearest distance to (lon,lat),and return lon.distance units: meters'''
-            mapx = Basemap(projection='ortho',lat_0=lat,lon_0=lon,resolution='l')
+            #mapx = Basemap(projection='ortho',lat_0=lat,lon_0=lon,resolution='l')
             dis_set = []
-            x,y = mapx(lon,lat)
+            #x,y = mapx(lon,lat)
             for i,j in zip(lons,lats):
-                x2,y2 = mapx(i,j)
-                ss=math.sqrt((x-x2)**2+(y-y2)**2)
+                #x2,y2 = mapx(i,j)
+                ss=math.sqrt((lon-i)**2+(lat-j)**2)
+                #ss=math.sqrt((x-x2)**2+(y-y2)**2)
                 dis_set.append(ss)
             dis = min(dis_set)
             p = dis_set.index(dis)
-            lnp = lons[p]
-            return lnp,dis       
+            lonp = lons[p]; latp = lats[p]
+            return lonp,latp,dis       
         index = self.bbox2ij(lon, lat, lons, lats)
         lon_covered = lons[index];  lat_covered = lats[index]       
-        lonp,distance = min_distance(lon,lat,lon_covered,lat_covered)
-        index = np.where(lons==lonp)
-        return index,distance    
+        lonp,latp,distance = min_distance(lon,lat,lon_covered,lat_covered)
+        #index1 = np.where(lons==lonp)
+        #index2 = np.where(lats==latp)
+        #index = np.intersect1d(index1,index2)
+        #points = np.vstack((lons.flatten(),lats.flatten())).T 
+        #index = [i for i in xrange(len(points)) if ([lonp,latp]==points[i]).all()]
+        '''index = []
+        for i in len(points):
+            if np.all([[lonp,latp],points[i]]):
+                index.append(i)'''
+                
+        #index = np.where(points==[lonp,latp])
+        #print 'index',index
+        return lonp,latp,distance   #index,
     def get_url(self, starttime, endtime):
         '''
         get different url according to starttime and endtime.
@@ -721,70 +755,114 @@ class get_fvcom(track):
         ??? Retrieves data?
         '''
         #self.data = jata.get_nc_data(url,'lon','lat','latc','lonc',
-        self.data = get_nc_data(url,'lon','lat','latc','lonc','u','v','siglay','h','nv','nbe')
+        self.data = get_nc_data(url,'latc','lonc','u','v','nbe')#'lon','lat','nv','siglay','h',
+
+
         return self.data
         
-    def get_track(self, lon, lat, depth, url,track_way):
+    def get_track(self, lon, lat,url,track_way): #depth, 
         '''
         Get forecast nodes start at lon,lat
         '''
         if type(url) is str:
-            nodes = dict(lon=[lon],lat=[lat])
-            temp = self.__get_track(lon, lat, depth, url,track_way)
+            nodes = dict(lon=[],lat=[])
+            temp = self.__get_track(lon, lat, url,track_way)#depth, 
             nodes['lon'].extend(temp['lon'])
             nodes['lat'].extend(temp['lat'])
         else:
             nodes = dict(lon=[lon],lat=[lat])            
             for i in url:
-                temp = self.__get_track(nodes['lon'][-1], nodes['lat'][-1], depth, i)
+                temp = self.__get_track(nodes['lon'][-1], nodes['lat'][-1], i)#, depth
                 nodes['lat'].extend(temp['lat'])
                 nodes['lon'].extend(temp['lon'])                
         return nodes
         
-    def __get_track(self, lon, lat, depth, url,track_way):
+    def __get_track(self, lon, lat, url,track_way): #depth,
         '''
         start, end: indices of some period
         data: a dict that has 'u' and 'v'
         '''
+        #siglay = data['siglay'][:]
+        #lonv, latv = data['lon'][:], data['lat'][:]    #Quantity:98432
+        #kv,distanceV = self.nearest_point_index(lon,lat,lonv,latv)
+        #h = data['h'][:]         
+        #depth_total = siglay[:,[kv]]*h[[kv]]  #????
+        layer = 0 #np.argmin(abs(depth_total-depth))
         data = self.get_data(url)        
-        lonc, latc = data['lonc'][:], data['latc'][:]  #quantity:165095
-        lonv, latv = data['lon'][:], data['lat'][:]    #Quantity:98432
-        h = data['h'][:]
-        siglay = data['siglay'][:]        
+        lonc, latc = data['lonc'][:], data['latc'][:]  #quantity:165095        
+        u = data['u'][:,layer]; v = data['v'][:,layer]
+        nbe1=data['nbe'][0].flatten();nbe2=data['nbe'][1].flatten();nbe3=data['nbe'][2].flatten()
+        lont = []; latt = []
+        p = Path.circle((lon,lat),radius=0.4)
+        pints = np.vstack((lonc.flatten(),latc.flatten())).T
+        for i in range(len(pints)):
+            if p.contains_point(pints[i]):
+                lont.append(pints[i][0])
+                latt.append(pints[i][1])
+        lonl=np.array(lont); latl=np.array(latt)
+        #######################
+        pointt = np.vstack((nbe1,nbe2,nbe3)).T
+        wl=[]
+        for i in pointt:
+            if 0 in i: 
+                wl.append(1)
+            else:
+                wl.append(0)
+        tf = np.array(wl)
+        inde = np.where(tf==True)
+        lonb = lonc[inde]
+        latb = latc[inde]
+        b_point = np.vstack((lonb.flatten(),latb.flatten())).T
+        ##################
         if lon>90:
             lon, lat = dm2dd(lon, lat)
-        nodes = dict(lon=[], lat=[])
-        kf,distanceF = self.nearest_point_index(lon,lat,lonc,latc)#,num=1
-        kv,distanceV = self.nearest_point_index(lon,lat,lonv,latv)
-        if distanceF>1000:
-            sys.exit('Sorry, your start position is NOT in the model domain')
-        depth_total = siglay[:,[kv]]*h[[kv]]  #????  
-        #print 'depth_total',depth_total
-        layer = np.argmin(abs(depth_total-depth))
+        nodes = dict(lon=[lon], lat=[lat])
+        try:
+            lona,lata,distanceF = self.nearest_point_index(lon,lat,lonl,latl)#,num=1kf,
+            index1 = np.where(lonc==lona)
+            index2 = np.where(latc==lata)
+            index = np.intersect1d(index1,index2)
+        except:
+            return nodes
+   
+        '''if distanceF>1000:
+            sys.exit('Sorry, your start position is NOT in the model domain')'''
+          
         t = abs(self.hours)
         for i in range(t):
             if track_way=='backward': #self.hours<0: # backwards case
-                u_t = -1*data['u'][(t-1)-i, layer][kf][0]
-                v_t = -1*data['v'][(t-1)-i, layer][kf][0]
+                #uv = np.vstack((data['u'][(t-1)-i,layer],data['v'][(t-1)-i,layer])).T
+                #u_t,v_t = uv[[kf]]*-1
+                u_t = -1*u[(t-1)-i][index][0]
+                v_t = -1*v[(t-1)-i][index][0]
             else:
-                u_t = data['u'][i, layer][kf][0]
-                v_t = data['v'][i, layer][kf][0]
+                u_t = u[i][index][0]
+                v_t = v[i][index][0]
             #print 'u_t, v_t, i', u_t, v_t, i
             dx = 60*60*u_t; dy = 60*60*v_t
-            mapx = Basemap(projection='ortho',lat_0=lat,lon_0=lon,resolution='l')                        
-            x,y = mapx(lon,lat)
-            lon,lat = mapx(x+dx,y+dy,inverse=True)
+            #mapx = Basemap(projection='ortho',lat_0=lat,lon_0=lon,resolution='l')                        
+            #x,y = mapx(lon,lat)
+            #lon,lat = mapx(x+dx,y+dy,inverse=True)            
+            lon = lon + (dx/(111111*np.cos(lat*np.pi/180)))
+            lat = lat + dy/111111
             print 'lon,lat,i',lon,lat,i
-            #lon = lon + (dx/(111111*np.cos(lat*np.pi/180)))
-            #lat = lat + dy/111111
             nodes['lon'].append(lon);  nodes['lat'].append(lat)
-            kf, distanceF = self.nearest_point_index(lon, lat, lonc, latc)
+            try:
+                lonz,latz,distanceF = self.nearest_point_index(lon, lat, lonl, latl)
+                index1 = np.where(lonc==lonz)
+                index2 = np.where(latc==latz)
+                index = np.intersect1d(index1,index2)
+            except:
+                return nodes
             #kv, distanceV = self.nearest_point_index(lon, lat, lonv, latv)
             print 'distanceF',distanceF            
-            if i==0:
-                if distanceF>1000: #distanceV>1100               
-                    print 'Sorry, your start position is NOT in the model domain'
-                    break                
+            for i in b_point:
+                if ([lonz,latz]==i).all():
+                    if distanceF>0.001: #distanceV>1100               
+                        #nodes['lon'].append(lonz); nodes['lat'].append(latz)
+                        #print lonz,latz, nodes['lon'][-1]
+                        print 'Sorry, drifter hits the land'
+                        return nodes                
         return nodes
         
 class get_drifter(track):
@@ -1104,19 +1182,19 @@ def uniquecolors(N):
     colors =  [colorsys.hsv_to_rgb(x*1.0/N, 0.5, 0.5) for x in range(N)]
     return colors
 
-def extract_drifter_point(drifter_ID,INPUT_DATA,start_time,end_time):
+def extract_drifter_point(drifter_ID,INPUT_DATA,start_time,days):
     drifter = get_drifter(drifter_ID, INPUT_DATA)
-    point = drifter.get_track(start_time,end_time)
+    point = drifter.get_track(start_time,days)
     return point
 def extract_fvcom_point(start_time, end_time, st_lon, st_lat,GRID,track_way):       
-    DEPTH = -1
+    #DEPTH = -1
     get_obj = get_fvcom(GRID)
     url_fvcom = get_obj.get_url(start_time,end_time)
-    point = get_obj.get_track(st_lon,st_lat,DEPTH,url_fvcom,track_way)
+    point = get_obj.get_track(st_lon,st_lat,url_fvcom,track_way)#,DEPTH
     return point
-def extract_roms_point(start_time, end_time, st_lon, st_lat):
-    DEPTH = -1
+def extract_roms_point(start_time, end_time, st_lon,st_lat,track_way):
+    #DEPTH = -1
     get_obj = get_roms()
     url_roms = get_obj.get_url(start_time,end_time)
-    point = get_obj.get_track(st_lon,st_lat,DEPTH,url_roms)
-    return point
+    point = get_obj.get_track(st_lon,st_lat,url_roms,track_way)#,DEPTH
+    return point #'''
