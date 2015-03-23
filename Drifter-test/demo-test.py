@@ -67,7 +67,7 @@ plt.title('Drifter {0}: {1} track'.format(drifter_ID,MODE))
 a0 = 12; a1 = 23; a2 = 34
 def animate(n):
     #ax.cla()
-    #del ax.lines() #apply to plot
+    #del ax.lines[:] #apply to plot
     #del ax.collection() #apply to scatter  
 
     #d_lon = dr_set['lons'][:n]; d_lat = dr_set['lats'][:n]
