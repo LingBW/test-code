@@ -124,3 +124,25 @@
                 pa.append((tlons[i],tlats[i]))
             path = Path(pa)#,codes
             return path
+################## boundary 2 ####################
+            '''if elementindex in b_index:
+                print 'boundary'
+                dss=math.sqrt((lonp-lonn)**2+(latp-latn)**2)
+                pa = Path.circle((lonp,latp),radius=dss)
+                if not pa.contains_point([lon,lat]):
+                    print 'Sorry, point on the land here.Depends on Boundarypoint'
+                    raise Exception()#
+            else :
+                pa = self.boundary_path(lon,lat)#'''   
+            ################## boundary 3 ####################
+            '''if elementindex in b_index:
+                #if ([lonp,latp]==i).all():               
+                nod = nv[:,elementindex]; 
+                if not (nodeindex+1) in nod:
+                    print 'Sorry, point on the land here.Depends on Boundarypoint'
+                    raise Exception()#
+                else :
+                    dss=math.sqrt((lonp-lonn)**2+(latp-latn)**2)
+                    if distance>dss:               
+                        print 'Sorry, point on the land here.Depends on Boundarypoint'
+                        raise Exception()#'''
