@@ -35,9 +35,9 @@ def read_temp():
 	
 while True:
     #print("temp C=%f\ttemp F=%f" % read_temp())
-    #time.sleep(1)
+    time.sleep(300)
     
-    mes = "%.2f%%0%.2f%%" % read_temp()
+    mes = "%d000%d" % read_temp()
     #ser=serial.Serial('COM16', 9600) # in Windows
     ser=serial.Serial('/dev/ttyUSB0',9600) # linux
     #print 'Open serial port.'
@@ -54,10 +54,10 @@ while True:
     ser.writelines('\n')
     time.sleep(1)
     #ser.writelines('ylb9'+meandepth+rangedepth+time_len+meantemp+sdeviatemp+'\n')
-    ser.writelines('ylb9'+mes+'\n')
+    ser.writelines('ylb9000'+mes+'\n')
     time.sleep(3)
     #print 'Sending data: '+meandepth+rangedepth+time_len+meantemp+sdeviatemp
     #print datetime.now()
     time.sleep(2) # 1100s 18 minutes        
     ser.close() # close port
-    time.sleep(1200)
+    time.sleep(900)
